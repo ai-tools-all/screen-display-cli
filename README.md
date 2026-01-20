@@ -14,10 +14,12 @@ Golang CLI tool for managing display configurations on Linux via xrandr.
 
 ```bash
 # Build from source
-go build -o dmon .
+make build
+# or: go build -o dmon .
 
 # Install to local bin
-cp dmon ~/.local/bin/
+make install
+# or: cp dmon ~/.local/bin/
 
 # Or system-wide
 sudo cp dmon /usr/local/bin/
