@@ -302,19 +302,19 @@ func (b *Backend) buildDualConfig(internal *models.Display, external *models.Dis
 
 func (b *Backend) getResolution(display *models.Display, mode models.ResolutionMode) string {
 	switch mode {
-	case models.ModeNormal:
+	case models.ModePreset:
 		if display.Type == models.Internal {
 			return b.findClosestMode(display, 1920, 1200)
 		}
 		return b.findClosestMode(display, 1920, 1080)
 
-	case models.ModeZoom:
+	case models.ModeLow:
 		if display.Type == models.Internal {
 			return b.findClosestMode(display, 1600, 1000)
 		}
 		return b.findClosestMode(display, 1280, 720)
 
-	case models.ModeNative:
+	case models.ModeHighest:
 		return b.findNativeMode(display)
 
 	default:

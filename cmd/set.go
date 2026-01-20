@@ -18,20 +18,20 @@ Targets:
   both, b      - Both displays
 
 Modes:
-  normal, n    - Default resolution (1920x1200 internal, 1920x1080 external)
-  zoom, z      - Reduced resolution (1600x1000 internal, 1280x720 external)
-  native, max  - Highest available resolution
+  preset, p    - Default resolution (1920x1200 internal, 1920x1080 external)
+  low, l       - Reduced resolution (1600x1000 internal, 1280x720 external)
+  highest, h   - Highest available resolution
 
 Positions (optional, for 'both' target):
   left, l      - Internal display to the left of external
   right, r     - Internal display to the right of external (default)
   above, a     - Internal display above external
   below, b     - Internal display below external`,
-	Example: `  dmon set internal native
-  dmon set external zoom
-  dmon set both normal left
-  dmon set i z l
-  dmon set e n r`,
+	Example: `  dmon set internal highest
+  dmon set external low
+  dmon set both preset left
+  dmon set i l
+  dmon set e h`,
 	Args: cobra.RangeArgs(2, 3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		target, err := models.ParseTarget(args[0])

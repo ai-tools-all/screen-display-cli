@@ -79,7 +79,7 @@ func (s *DisplayService) SetSingleDisplay(ctx context.Context) (*models.ConfigRe
 
 	config := models.DisplayConfig{
 		Target:   models.TargetInternal,
-		Mode:     models.ModeNormal,
+		Mode:     models.ModePreset,
 		Position: models.PositionNone,
 	}
 

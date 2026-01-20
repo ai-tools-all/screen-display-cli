@@ -13,17 +13,17 @@ var dualCmd = &cobra.Command{
 	Long: `Configure dual-display mode with external monitor as primary and internal display positioned to the right.
 
 Modes:
-  normal  - Default resolution (1920x1200 internal, 1920x1080 external)
-  zoom    - Reduced resolution (1600x1000 internal, 1280x720 external)
-  native  - Highest available resolution for each display
+  preset  - Default resolution (1920x1200 internal, 1920x1080 external)
+  low     - Reduced resolution (1600x1000 internal, 1280x720 external)
+  highest - Highest available resolution for each display
 
-If no mode is specified, 'normal' is used.`,
+If no mode is specified, 'preset' is used.`,
 	Example: `  dmon dual
-  dmon dual zoom
-  dmon dual native`,
+  dmon dual low
+  dmon dual highest`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		mode := models.ModeNormal
+		mode := models.ModePreset
 		if len(args) > 0 {
 			var err error
 			mode, err = models.ParseResolutionMode(args[0])

@@ -92,32 +92,32 @@ func (t Target) String() string {
 type ResolutionMode int
 
 const (
-	ModeNormal ResolutionMode = iota
-	ModeZoom
-	ModeNative
+	ModePreset ResolutionMode = iota
+	ModeLow
+	ModeHighest
 )
 
 func ParseResolutionMode(s string) (ResolutionMode, error) {
 	switch s {
-	case "normal", "n":
-		return ModeNormal, nil
-	case "zoom", "z":
-		return ModeZoom, nil
-	case "native", "max":
-		return ModeNative, nil
+	case "preset", "p":
+		return ModePreset, nil
+	case "low", "l":
+		return ModeLow, nil
+	case "highest", "h":
+		return ModeHighest, nil
 	default:
-		return 0, fmt.Errorf("invalid mode: %s (valid: normal/n, zoom/z, native/max)", s)
+		return 0, fmt.Errorf("invalid mode: %s (valid: preset/p, low/l, highest/h)", s)
 	}
 }
 
 func (rm ResolutionMode) String() string {
 	switch rm {
-	case ModeNormal:
-		return "normal"
-	case ModeZoom:
-		return "zoom"
-	case ModeNative:
-		return "native"
+	case ModePreset:
+		return "preset"
+	case ModeLow:
+		return "low"
+	case ModeHighest:
+		return "highest"
 	default:
 		return "unknown"
 	}
