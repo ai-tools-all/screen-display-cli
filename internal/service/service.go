@@ -21,12 +21,12 @@ func New(backend adapter.DisplayBackend, logger *logrus.Logger) *DisplayService 
 	}
 }
 
-func (s *DisplayService) SetupDual(ctx context.Context, mode models.ResolutionMode) error {
+func (s *DisplayService) SetupDual(ctx context.Context, mode models.ResolutionMode) (*models.ConfigResult, error) {
 	s.logger.WithField("mode", mode).Info("Setting up dual display")
 
 	displays, err := s.backend.DetectDisplays(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to detect displays: %w", err)
+		return nil, fmt.Errorf("failed to detect displays: %w", err)
 	}
 
 	config := models.DisplayConfig{
@@ -35,14 +35,15 @@ func (s *DisplayService) SetupDual(ctx context.Context, mode models.ResolutionMo
 		Position: models.PositionRight,
 	}
 
-	if err := s.backend.Configure(ctx, config, displays); err != nil {
-		return err
+	result, err := s.backend.Configure(ctx, config, displays)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return result, nil
 }
 
-func (s *DisplayService) SetDisplay(ctx context.Context, target models.Target, mode models.ResolutionMode, position models.Position) error {
+func (s *DisplayService) SetDisplay(ctx context.Context, target models.Target, mode models.ResolutionMode, position models.Position) (*models.ConfigResult, error) {
 	s.logger.WithFields(logrus.Fields{
 		"target":   target,
 		"mode":     mode,
@@ -51,7 +52,7 @@ func (s *DisplayService) SetDisplay(ctx context.Context, target models.Target, m
 
 	displays, err := s.backend.DetectDisplays(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to detect displays: %w", err)
+		return nil, fmt.Errorf("failed to detect displays: %w", err)
 	}
 
 	config := models.DisplayConfig{
@@ -60,19 +61,20 @@ func (s *DisplayService) SetDisplay(ctx context.Context, target models.Target, m
 		Position: position,
 	}
 
-	if err := s.backend.Configure(ctx, config, displays); err != nil {
-		return err
+	result, err := s.backend.Configure(ctx, config, displays)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return result, nil
 }
 
-func (s *DisplayService) SetSingleDisplay(ctx context.Context) error {
+func (s *DisplayService) SetSingleDisplay(ctx context.Context) (*models.ConfigResult, error) {
 	s.logger.Info("Setting up single display (internal only)")
 
 	displays, err := s.backend.DetectDisplays(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to detect displays: %w", err)
+		return nil, fmt.Errorf("failed to detect displays: %w", err)
 	}
 
 	config := models.DisplayConfig{
@@ -81,11 +83,12 @@ func (s *DisplayService) SetSingleDisplay(ctx context.Context) error {
 		Position: models.PositionNone,
 	}
 
-	if err := s.backend.Configure(ctx, config, displays); err != nil {
-		return err
+	result, err := s.backend.Configure(ctx, config, displays)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return result, nil
 }
 
 func (s *DisplayService) ListDisplays(ctx context.Context) ([]models.Display, error) {

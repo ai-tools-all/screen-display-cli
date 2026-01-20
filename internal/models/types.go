@@ -177,3 +177,15 @@ type Layout struct {
 	Displays []Display
 	Primary  string
 }
+
+type ConfiguredDisplay struct {
+	ID         string
+	Type       DisplayType
+	Resolution string
+	Active     bool
+}
+
+type ConfigResult struct {
+	Displays []ConfiguredDisplay
+	Config   DisplayConfig
+}

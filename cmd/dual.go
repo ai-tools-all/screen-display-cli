@@ -32,11 +32,20 @@ If no mode is specified, 'normal' is used.`,
 			}
 		}
 
-		if err := svc.SetupDual(getContext(), mode); err != nil {
+		result, err := svc.SetupDual(getContext(), mode)
+		if err != nil {
 			return fmt.Errorf("dual display setup failed: %w", err)
 		}
 
-		fmt.Printf("✓ Dual display configured (%s mode)\n", mode)
+		fmt.Printf("✓ Dual display configured (%s mode)\n\n", mode)
+
+		fmt.Println("Configured displays:")
+		for _, d := range result.Displays {
+			if d.Active {
+				fmt.Printf("  ▸ %s (%s) → %s\n", d.ID, d.Type, d.Resolution)
+			}
+		}
+
 		return nil
 	},
 }

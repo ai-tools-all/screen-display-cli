@@ -139,7 +139,7 @@ func (b *Backend) identifyDisplayType(displayID string) models.DisplayType {
 	return models.External
 }
 
-func (b *Backend) Configure(ctx context.Context, config models.DisplayConfig, displays []models.Display) error {
+func (b *Backend) Configure(ctx context.Context, config models.DisplayConfig, displays []models.Display) (*models.ConfigResult, error) {
 	b.logger.WithFields(logrus.Fields{
 		"target":   config.Target,
 		"mode":     config.Mode,
@@ -149,26 +149,67 @@ func (b *Backend) Configure(ctx context.Context, config models.DisplayConfig, di
 	internal, externals := b.categorizeDisplays(displays)
 
 	if internal == nil {
-		return fmt.Errorf("no internal display found")
+		return nil, fmt.Errorf("no internal display found")
 	}
 
 	var args []string
+	var configuredDisplays []models.ConfiguredDisplay
 
 	switch config.Target {
 	case models.TargetInternal:
+		res := b.getResolution(internal, config.Mode)
 		args = b.buildInternalOnlyConfig(internal, config.Mode)
+		configuredDisplays = []models.ConfiguredDisplay{
+			{
+				ID:         internal.ID,
+				Type:       internal.Type,
+				Resolution: res,
+				Active:     true,
+			},
+		}
 
 	case models.TargetExternal:
 		if len(externals) == 0 {
-			return fmt.Errorf("no external displays found. Try 'dmon list' to see available displays")
+			return nil, fmt.Errorf("no external displays found. Try 'dmon list' to see available displays")
 		}
+		res := b.getResolution(externals[0], config.Mode)
 		args = b.buildExternalOnlyConfig(internal, externals[0], config.Mode)
+		configuredDisplays = []models.ConfiguredDisplay{
+			{
+				ID:         externals[0].ID,
+				Type:       externals[0].Type,
+				Resolution: res,
+				Active:     true,
+			},
+			{
+				ID:         internal.ID,
+				Type:       internal.Type,
+				Resolution: "",
+				Active:     false,
+			},
+		}
 
 	case models.TargetBoth:
 		if len(externals) == 0 {
-			return fmt.Errorf("no external displays found. Try 'dmon list' to see available displays")
+			return nil, fmt.Errorf("no external displays found. Try 'dmon list' to see available displays")
 		}
+		internalRes := b.getResolution(internal, config.Mode)
+		externalRes := b.getResolution(externals[0], config.Mode)
 		args = b.buildDualConfig(internal, externals[0], config.Mode, config.Position)
+		configuredDisplays = []models.ConfiguredDisplay{
+			{
+				ID:         externals[0].ID,
+				Type:       externals[0].Type,
+				Resolution: externalRes,
+				Active:     true,
+			},
+			{
+				ID:         internal.ID,
+				Type:       internal.Type,
+				Resolution: internalRes,
+				Active:     true,
+			},
+		}
 	}
 
 	b.logger.WithField("args", strings.Join(args, " ")).Debug("Executing xrandr command")
@@ -180,11 +221,17 @@ func (b *Backend) Configure(ctx context.Context, config models.DisplayConfig, di
 			"error":  err,
 			"output": string(output),
 		}).Error("xrandr configuration failed")
-		return fmt.Errorf("xrandr failed: %w\nOutput: %s", err, string(output))
+		return nil, fmt.Errorf("xrandr failed: %w\nOutput: %s", err, string(output))
 	}
 
 	b.logger.Info("Display configuration applied successfully")
-	return nil
+
+	result := &models.ConfigResult{
+		Displays: configuredDisplays,
+		Config:   config,
+	}
+
+	return result, nil
 }
 
 func (b *Backend) categorizeDisplays(displays []models.Display) (*models.Display, []*models.Display) {

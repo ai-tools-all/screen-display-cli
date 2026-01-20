@@ -52,7 +52,8 @@ Positions (optional, for 'both' target):
 			}
 		}
 
-		if err := svc.SetDisplay(getContext(), target, mode, position); err != nil {
+		result, err := svc.SetDisplay(getContext(), target, mode, position)
+		if err != nil {
 			return fmt.Errorf("display configuration failed: %w", err)
 		}
 
@@ -60,7 +61,16 @@ Positions (optional, for 'both' target):
 		if target == models.TargetBoth {
 			fmt.Printf(", %s", position)
 		}
-		fmt.Println(")")
+		fmt.Println(")\n")
+
+		fmt.Println("Configured displays:")
+		for _, d := range result.Displays {
+			if d.Active {
+				fmt.Printf("  ▸ %s (%s) → %s\n", d.ID, d.Type, d.Resolution)
+			} else {
+				fmt.Printf("  ▸ %s (%s) → disabled\n", d.ID, d.Type)
+			}
+		}
 
 		return nil
 	},

@@ -14,11 +14,20 @@ External displays will be disabled.`,
 	Example: `  dmon single`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := svc.SetSingleDisplay(getContext()); err != nil {
+		result, err := svc.SetSingleDisplay(getContext())
+		if err != nil {
 			return fmt.Errorf("single display setup failed: %w", err)
 		}
 
-		fmt.Println("✓ Single display mode (internal only)")
+		fmt.Println("✓ Single display mode (internal only)\n")
+
+		fmt.Println("Configured displays:")
+		for _, d := range result.Displays {
+			if d.Active {
+				fmt.Printf("  ▸ %s (%s) → %s\n", d.ID, d.Type, d.Resolution)
+			}
+		}
+
 		return nil
 	},
 }

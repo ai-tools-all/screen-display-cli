@@ -11,7 +11,7 @@ type DisplayDetector interface {
 }
 
 type DisplayConfigurator interface {
-	Configure(ctx context.Context, config models.DisplayConfig, displays []models.Display) error
+	Configure(ctx context.Context, config models.DisplayConfig, displays []models.Display) (*models.ConfigResult, error)
 }
 
 type DisplayQuerier interface {
