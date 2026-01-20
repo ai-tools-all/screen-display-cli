@@ -7,6 +7,7 @@ import (
 
 	"github.com/abhishek/dmon-cli/internal/logger"
 	"github.com/abhishek/dmon-cli/internal/service"
+	"github.com/abhishek/dmon-cli/internal/version"
 	"github.com/abhishek/dmon-cli/internal/xrandr"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -23,7 +24,7 @@ var rootCmd = &cobra.Command{
 	Short: "Display Monitor - manage your displays with ease",
 	Long: `dmon is a CLI tool for managing display configurations on Linux.
 It provides a simple interface to xrandr for common display management tasks.`,
-	Version: "1.0.0",
+	// Version is set in init()
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		log, err = logger.New(verbose)
@@ -45,6 +46,9 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.Version = version.GitVersion
+	rootCmd.SetVersionTemplate(fmt.Sprintf("%s\n", version.Info()))
+
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Show detailed output and xrandr commands")
 }
 
