@@ -157,8 +157,14 @@ func (b *Backend) Configure(ctx context.Context, config models.DisplayConfig, di
 
 	switch config.Target {
 	case models.TargetInternal:
-		res := b.getResolution(internal, config.Mode)
-		args = b.buildInternalOnlyConfig(internal, config.Mode)
+		res := b.getResolution(internal, config.Mode, config.CustomResolution)
+		if res == "" {
+			if config.CustomResolution != "" {
+				return nil, fmt.Errorf("resolution %s not available for %s. Use 'dmon list' to see available resolutions", config.CustomResolution, internal.ID)
+			}
+			return nil, fmt.Errorf("failed to determine resolution for %s", internal.ID)
+		}
+		args = b.buildInternalOnlyConfig(internal, res)
 		configuredDisplays = []models.ConfiguredDisplay{
 			{
 				ID:         internal.ID,
@@ -172,8 +178,14 @@ func (b *Backend) Configure(ctx context.Context, config models.DisplayConfig, di
 		if len(externals) == 0 {
 			return nil, fmt.Errorf("no external displays found. Try 'dmon list' to see available displays")
 		}
-		res := b.getResolution(externals[0], config.Mode)
-		args = b.buildExternalOnlyConfig(internal, externals[0], config.Mode)
+		res := b.getResolution(externals[0], config.Mode, config.CustomResolution)
+		if res == "" {
+			if config.CustomResolution != "" {
+				return nil, fmt.Errorf("resolution %s not available for %s. Use 'dmon list' to see available resolutions", config.CustomResolution, externals[0].ID)
+			}
+			return nil, fmt.Errorf("failed to determine resolution for %s", externals[0].ID)
+		}
+		args = b.buildExternalOnlyConfig(internal, externals[0], res)
 		configuredDisplays = []models.ConfiguredDisplay{
 			{
 				ID:         externals[0].ID,
@@ -193,9 +205,18 @@ func (b *Backend) Configure(ctx context.Context, config models.DisplayConfig, di
 		if len(externals) == 0 {
 			return nil, fmt.Errorf("no external displays found. Try 'dmon list' to see available displays")
 		}
-		internalRes := b.getResolution(internal, config.Mode)
-		externalRes := b.getResolution(externals[0], config.Mode)
-		args = b.buildDualConfig(internal, externals[0], config.Mode, config.Position)
+		internalRes := b.getResolution(internal, config.Mode, config.CustomResolution)
+		if internalRes == "" {
+			if config.CustomResolution != "" {
+				return nil, fmt.Errorf("resolution %s not available for %s. Use 'dmon list' to see available resolutions", config.CustomResolution, internal.ID)
+			}
+			return nil, fmt.Errorf("failed to determine resolution for %s", internal.ID)
+		}
+		externalRes := b.getResolution(externals[0], config.Mode, "")
+		if externalRes == "" {
+			return nil, fmt.Errorf("failed to determine resolution for %s", externals[0].ID)
+		}
+		args = b.buildDualConfig(internal, externals[0], internalRes, externalRes, config.Position)
 		configuredDisplays = []models.ConfiguredDisplay{
 			{
 				ID:         externals[0].ID,
@@ -252,30 +273,25 @@ func (b *Backend) categorizeDisplays(displays []models.Display) (*models.Display
 	return internal, externals
 }
 
-func (b *Backend) buildInternalOnlyConfig(internal *models.Display, mode models.ResolutionMode) []string {
-	res := b.getResolution(internal, mode)
+func (b *Backend) buildInternalOnlyConfig(internal *models.Display, resolution string) []string {
 	return []string{
 		"--output", internal.ID,
-		"--mode", res,
+		"--mode", resolution,
 		"--primary",
 	}
 }
 
-func (b *Backend) buildExternalOnlyConfig(internal *models.Display, external *models.Display, mode models.ResolutionMode) []string {
-	res := b.getResolution(external, mode)
+func (b *Backend) buildExternalOnlyConfig(internal *models.Display, external *models.Display, resolution string) []string {
 	return []string{
 		"--output", external.ID,
-		"--mode", res,
+		"--mode", resolution,
 		"--primary",
 		"--output", internal.ID,
 		"--off",
 	}
 }
 
-func (b *Backend) buildDualConfig(internal *models.Display, external *models.Display, mode models.ResolutionMode, pos models.Position) []string {
-	internalRes := b.getResolution(internal, mode)
-	externalRes := b.getResolution(external, mode)
-
+func (b *Backend) buildDualConfig(internal *models.Display, external *models.Display, internalRes string, externalRes string, pos models.Position) []string {
 	args := []string{
 		"--output", external.ID,
 		"--mode", externalRes,
@@ -300,19 +316,28 @@ func (b *Backend) buildDualConfig(internal *models.Display, external *models.Dis
 	return args
 }
 
-func (b *Backend) getResolution(display *models.Display, mode models.ResolutionMode) string {
+func (b *Backend) getResolution(display *models.Display, mode models.ResolutionMode, customResolution string) string {
+	if customResolution != "" {
+		width, height, err := parseCustomResolution(customResolution)
+		if err != nil {
+			b.logger.WithError(err).Error("Invalid custom resolution format")
+			return ""
+		}
+		return b.findClosestMode(display, width, height, customResolution)
+	}
+
 	switch mode {
 	case models.ModePreset:
 		if display.Type == models.Internal {
-			return b.findClosestMode(display, 1920, 1200)
+			return b.findClosestMode(display, 1920, 1200, "")
 		}
-		return b.findClosestMode(display, 1920, 1080)
+		return b.findClosestMode(display, 1920, 1080, "")
 
 	case models.ModeLow:
 		if display.Type == models.Internal {
-			return b.findClosestMode(display, 1600, 1000)
+			return b.findClosestMode(display, 1600, 1000, "")
 		}
-		return b.findClosestMode(display, 1280, 720)
+		return b.findClosestMode(display, 1280, 720, "")
 
 	case models.ModeHighest:
 		return b.findNativeMode(display)
@@ -322,18 +347,31 @@ func (b *Backend) getResolution(display *models.Display, mode models.ResolutionM
 	}
 }
 
-func (b *Backend) findClosestMode(display *models.Display, targetWidth, targetHeight int) string {
+func (b *Backend) findClosestMode(display *models.Display, targetWidth, targetHeight int, customResolution string) string {
 	for _, mode := range display.Modes {
 		if mode.Width == targetWidth && mode.Height == targetHeight {
 			return fmt.Sprintf("%dx%d", mode.Width, mode.Height)
 		}
 	}
 
+	availableModes := b.formatAvailableModes(display)
+
+	if customResolution != "" {
+		b.logger.WithFields(logrus.Fields{
+			"display": display.ID,
+			"target":  customResolution,
+		}).Error("Custom resolution not available")
+		b.logger.Error(availableModes)
+		return ""
+	}
+
 	if display.CurrentMode != nil {
 		b.logger.WithFields(logrus.Fields{
 			"display": display.ID,
 			"target":  fmt.Sprintf("%dx%d", targetWidth, targetHeight),
-		}).Warn("Target resolution not available, using current mode")
+		}).Warn("Target resolution not available")
+		b.logger.Warn(availableModes)
+		b.logger.WithField("resolution", fmt.Sprintf("%dx%d", display.CurrentMode.Width, display.CurrentMode.Height)).Info("Using current mode as fallback")
 		return fmt.Sprintf("%dx%d", display.CurrentMode.Width, display.CurrentMode.Height)
 	}
 
@@ -357,6 +395,47 @@ func (b *Backend) findNativeMode(display *models.Display) string {
 	}
 
 	return "auto"
+}
+
+func parseCustomResolution(res string) (width, height int, err error) {
+	if res == "" {
+		return 0, 0, nil
+	}
+
+	parts := strings.Split(res, "x")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("invalid resolution format '%s'. Use format: WIDTHxHEIGHT (e.g., 1920x1200)", res)
+	}
+
+	width, err = strconv.Atoi(parts[0])
+	if err != nil || width <= 0 {
+		return 0, 0, fmt.Errorf("invalid width in resolution '%s'", res)
+	}
+
+	height, err = strconv.Atoi(parts[1])
+	if err != nil || height <= 0 {
+		return 0, 0, fmt.Errorf("invalid height in resolution '%s'", res)
+	}
+
+	return width, height, nil
+}
+
+func (b *Backend) formatAvailableModes(display *models.Display) string {
+	var lines []string
+	lines = append(lines, fmt.Sprintf("\nAvailable resolutions for %s:", display.ID))
+
+	for _, mode := range display.Modes {
+		marker := ""
+		if mode.Current {
+			marker = " (current) *"
+		} else if mode.Preferred {
+			marker = " +"
+		}
+		lines = append(lines, fmt.Sprintf("  %dx%d@%.2fHz%s",
+			mode.Width, mode.Height, mode.Rate, marker))
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 func (b *Backend) GetCurrentLayout(ctx context.Context) (*models.Layout, error) {

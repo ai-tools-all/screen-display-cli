@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var customResolution string
+
 var setCmd = &cobra.Command{
 	Use:   "set <target> <mode> [position]",
 	Short: "Full control over display configuration",
@@ -52,7 +54,7 @@ Positions (optional, for 'both' target):
 			}
 		}
 
-		result, err := svc.SetDisplay(getContext(), target, mode, position)
+		result, err := svc.SetDisplay(getContext(), target, mode, position, customResolution)
 		if err != nil {
 			return fmt.Errorf("display configuration failed: %w", err)
 		}
@@ -77,5 +79,6 @@ Positions (optional, for 'both' target):
 }
 
 func init() {
+	setCmd.Flags().StringVar(&customResolution, "resolution", "", "Custom resolution (e.g., 1920x1200)")
 	rootCmd.AddCommand(setCmd)
 }

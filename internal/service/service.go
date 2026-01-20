@@ -43,11 +43,12 @@ func (s *DisplayService) SetupDual(ctx context.Context, mode models.ResolutionMo
 	return result, nil
 }
 
-func (s *DisplayService) SetDisplay(ctx context.Context, target models.Target, mode models.ResolutionMode, position models.Position) (*models.ConfigResult, error) {
+func (s *DisplayService) SetDisplay(ctx context.Context, target models.Target, mode models.ResolutionMode, position models.Position, customResolution string) (*models.ConfigResult, error) {
 	s.logger.WithFields(logrus.Fields{
-		"target":   target,
-		"mode":     mode,
-		"position": position,
+		"target":           target,
+		"mode":             mode,
+		"position":         position,
+		"customResolution": customResolution,
 	}).Info("Configuring display")
 
 	displays, err := s.backend.DetectDisplays(ctx)
@@ -56,9 +57,10 @@ func (s *DisplayService) SetDisplay(ctx context.Context, target models.Target, m
 	}
 
 	config := models.DisplayConfig{
-		Target:   target,
-		Mode:     mode,
-		Position: position,
+		Target:           target,
+		Mode:             mode,
+		Position:         position,
+		CustomResolution: customResolution,
 	}
 
 	result, err := s.backend.Configure(ctx, config, displays)

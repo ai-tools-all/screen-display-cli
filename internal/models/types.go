@@ -168,9 +168,10 @@ func (p Position) String() string {
 }
 
 type DisplayConfig struct {
-	Target   Target
-	Mode     ResolutionMode
-	Position Position
+	Target           Target
+	Mode             ResolutionMode
+	Position         Position
+	CustomResolution string
 }
 
 type Layout struct {
