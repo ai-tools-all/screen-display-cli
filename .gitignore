@@ -1,3 +1,4 @@
 dmon
+dmon-cli
 *.log
 .DS_Store
