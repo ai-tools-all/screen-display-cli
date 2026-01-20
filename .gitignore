@@ -2,3 +2,5 @@ dmon
 dmon-cli
 *.log
 .DS_Store
+.beads/beads.db
+.beads/docs/
