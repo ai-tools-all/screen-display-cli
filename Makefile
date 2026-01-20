@@ -11,13 +11,18 @@ GIT_VERSION=$(shell git describe --tags --always --dirty 2> /dev/null || echo "d
 BUILD_DATE=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # Linker flags
+# -s: strip symbol table
+# -w: strip DWARF debug info
 LDFLAGS=-ldflags "-s -w \
 	-X '$(PKG_VERSION).GitCommit=$(GIT_COMMIT)' \
 	-X '$(PKG_VERSION).GitVersion=$(GIT_VERSION)' \
 	-X '$(PKG_VERSION).BuildDate=$(BUILD_DATE)'"
 
+# For ultra-minimal size (~3.5MB), use:
+# LDFLAGS_EXTRA=-ldflags "-s -w -extldflags=-static"
+
 build:
-	go build $(LDFLAGS) -o $(BINARY_NAME) .
+	CGO_ENABLED=0 go build -trimpath $(LDFLAGS) -o $(BINARY_NAME) .
 
 clean:
 	rm -f $(BINARY_NAME) dmon-cli
